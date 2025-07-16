@@ -96,15 +96,27 @@ body {
   display: flex;
 }
 
+/* Make the dropdown less wide but still aligned */
 .search-section select {
   width: 100%;
-  padding: 16px;
-  font-size: 18px;
+  max-width: 500px;
+  padding: 12px;
+  font-size: 16px;
   border: 2px solid #000;
   border-radius: 8px;
   cursor: pointer;
   background-color: white;
   font-weight: 500;
+  box-sizing: border-box;
+}
+
+/* Center the search section contents horizontally */
+.search-section {
+  margin: 30px 0;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 .search-section select:focus {
@@ -319,11 +331,16 @@ body {
 }
 
 /* Add this to style.css for bigger chat boxes */
+/* Make the AI chatbox slightly bigger for better readability */
 .chat-bigger {
-  font-size: 1.08em;
-  padding: 1em 1.2em;
-  margin-bottom: 10px;
-  border-radius: 10px;
+  font-size: 1.16em;
+  padding: 1.4em 2em;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  word-break: break-word;
+  line-height: 1.7;
+  max-width: 98%;
+  box-sizing: border-box;
 }
 .user-message.chat-bigger {
   background: #f5f5f5;
