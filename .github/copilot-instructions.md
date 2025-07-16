@@ -13,3 +13,5 @@ We provide the simplest, beginner-friendly code possible.
 We do NOT use `export` statements. Instead we link to JS files from `index.html`.
 
 We use `const` and `let` for variables and template literals for string formatting and DOM insertion.
+
+We use a `messages` parameter instead of `prompt` for the OpenAI API, and check for `data.choices[0].message.content`.
