@@ -16,7 +16,8 @@
   </head>
 
   <body>
-    <div class="page-wrapper">
+    <!-- To support RTL languages, set dir="rtl" on the main wrapper -->
+    <div class="page-wrapper" dir="rtl">
       <!------- Header / Branding ------->
       <header class="site-header">
         <img src="img/loreal-logo.png" alt="L'Oréal Logo" class="logo" />
@@ -39,13 +40,27 @@
         </select>
       </div>
 
-      <!-- Products Grid -->
-      <div id="productsContainer" class="products-grid"></div>
+      <!-- All Products Box -->
+      <div class="selected-products" id="allProductsBox">
+        <h2>All Products</h2>
+        <div
+          id="allProductsList"
+          dir="rtl"
+          style="display: flex; flex-wrap: wrap; gap: 10px"
+        ></div>
+      </div>
+
+      <!-- Products Grid (legacy, can be removed if not needed) -->
+      <div
+        id="productsContainer"
+        class="products-grid"
+        style="display: none"
+      ></div>
 
       <!-- Selected Products -->
       <div class="selected-products">
         <h2>Selected Products</h2>
-        <div id="selectedProductsList"></div>
+        <div id="selectedProductsList" dir="rtl"></div>
         <button id="generateRoutine" class="generate-btn">
           <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Routine
         </button>
@@ -54,9 +69,9 @@
       <!------- Chat Area ------->
       <section class="chatbox">
         <h2>Let's Build Your Routine</h2>
-        <div id="chatWindow" class="chat-window"></div>
+        <div id="chatWindow" class="chat-window" dir="rtl"></div>
 
-        <form id="chatForm" class="chat-form">
+        <form id="chatForm" class="chat-form" dir="rtl">
           <label for="userInput" class="visually-hidden">Message</label>
           <input
             id="userInput"
@@ -86,7 +101,6 @@
     </div>
 
     <!-- secrets.js can be removed when using Cloudflare Workers for API requests -->
-    <script src="secrets.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
