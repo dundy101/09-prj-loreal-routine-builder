@@ -71,46 +71,53 @@ async function getRoutineFromAI(selectedProducts, userPrompt) {
     // Add the AI's reply to the chat history
     chatHistory.push({ role: "assistant", content: aiReply });
 
-    // Split the reply into lines
-    const lines = aiReply.split(/\n|\r/).filter((s) => s.trim().length > 0);
+    // Only show a reply if the AI reply has non-whitespace content
+    if (aiReply && aiReply.trim().length > 0) {
+      // Split the reply into lines
+      const lines = aiReply.split(/\n|\r/).filter((s) => s.trim().length > 0);
 
-    // Find the first line that looks like a step (starts with a number or bullet)
-    let firstStepIdx = lines.findIndex((line) => /^\s*(\d+\.|-\s)/.test(line));
-    let introLines = [];
-    let stepLines = [];
-    if (firstStepIdx > 0) {
-      introLines = lines.slice(0, firstStepIdx);
-      stepLines = lines.slice(firstStepIdx);
-    } else if (firstStepIdx === 0) {
-      stepLines = lines;
-    } else {
-      introLines = lines;
+      // Find the first line that looks like a step (starts with a number or bullet)
+      let firstStepIdx = lines.findIndex((line) =>
+        /^\s*(\d+\.|-\s)/.test(line)
+      );
+      let introLines = [];
+      let stepLines = [];
+      if (firstStepIdx > 0) {
+        introLines = lines.slice(0, firstStepIdx);
+        stepLines = lines.slice(firstStepIdx);
+      } else if (firstStepIdx === 0) {
+        stepLines = lines;
+      } else {
+        introLines = lines;
+      }
+
+      // Create a new, slightly larger chat box for this reply
+      const replyBox = document.createElement("div");
+      replyBox.className = "ai-message chat-bigger";
+
+      // Add intro comments (not numbered)
+      if (introLines.length > 0) {
+        replyBox.innerHTML += introLines
+          .map((line) => `<div>${line}</div>`)
+          .join("");
+      }
+
+      // Add steps as a numbered list
+      if (stepLines.length > 0) {
+        replyBox.innerHTML += `<ol>${stepLines
+          .map(
+            (step) => `<li>${step.replace(/^\d+\.\s*|^-\s*/, "").trim()}</li>`
+          )
+          .join("")}</ol>`;
+      }
+
+      // If there are no steps, just show the reply
+      if (introLines.length === 0 && stepLines.length === 0) {
+        replyBox.innerHTML = aiReply;
+      }
+
+      chatWindow.appendChild(replyBox);
     }
-
-    // Create a new, slightly larger chat box for this reply
-    const replyBox = document.createElement("div");
-    replyBox.className = "ai-message chat-bigger";
-
-    // Add intro comments (not numbered)
-    if (introLines.length > 0) {
-      replyBox.innerHTML += introLines
-        .map((line) => `<div>${line}</div>`)
-        .join("");
-    }
-
-    // Add steps as a numbered list
-    if (stepLines.length > 0) {
-      replyBox.innerHTML += `<ol>${stepLines
-        .map((step) => `<li>${step.replace(/^\d+\.\s*|^-\s*/, "").trim()}</li>`)
-        .join("")}</ol>`;
-    }
-
-    // If there are no steps, just show the reply
-    if (introLines.length === 0 && stepLines.length === 0) {
-      replyBox.innerHTML = aiReply;
-    }
-
-    chatWindow.appendChild(replyBox);
   } catch (error) {
     // Remove the loading message if there's an error
     if (chatBox) chatBox.remove();
@@ -176,13 +183,23 @@ let currentSearchTerm = "";
 function displayProducts(products) {
   const allProductsList = document.getElementById("allProductsList");
   if (!allProductsList) return;
-  // Filter out selected products
-  let unselected = products.filter(
+  // Always filter from allProducts for the selected category, then remove selected products
+  let filtered = allProducts;
+  const selectedCategory = categoryFilter.value;
+  if (selectedCategory) {
+    filtered = allProducts.filter(
+      (product) => product.category === selectedCategory
+    );
+  }
+  // Remove selected products
+  let unselected = filtered.filter(
     (product) =>
       !selectedProducts.some(
         (p) => p.name === product.name && p.brand === product.brand
       )
   );
+  // Update currentProducts to always reflect the current unselected list for the selected category
+  currentProducts = filtered;
   // Filter by search term
   if (currentSearchTerm.trim() !== "") {
     const term = currentSearchTerm.trim().toLowerCase();
@@ -220,17 +237,22 @@ function displayProducts(products) {
   const productCards = allProductsList.querySelectorAll(".product-card");
   productCards.forEach((card) => {
     card.addEventListener("click", (e) => {
-      // Prevent click if desc button is clicked
-      if (e.target.closest(".desc-toggle-btn")) return;
+      // Prevent click if desc button or product-desc is clicked
+      if (
+        e.target.closest(".desc-toggle-btn") ||
+        e.target.closest(".product-desc")
+      )
+        return;
       const name = card.getAttribute("data-product-name");
       const brand = card.getAttribute("data-product-brand");
-      const product = products.find(
+      const product = allProducts.find(
         (p) => p.name === name && p.brand === brand
       );
       if (!selectedProducts.some((p) => p.name === name && p.brand === brand)) {
         selectedProducts.push(product);
         updateSelectedProducts();
-        displayProducts(products);
+        // After selection, re-filter and update the all products box
+        displayProducts(allProducts);
       }
     });
     // Description toggle
@@ -244,14 +266,32 @@ function displayProducts(products) {
       } else {
         const name = card.getAttribute("data-product-name");
         const brand = card.getAttribute("data-product-brand");
-        const product = products.find(
+        const product = allProducts.find(
           (p) => p.name === name && p.brand === brand
         );
         desc = document.createElement("div");
         desc.className = "product-desc";
         // Show full description, no truncation
         let descText = product.description || "No description available.";
-        desc.textContent = descText;
+        // Add a close button (×) to the description
+        const closeBtn = document.createElement("button");
+        closeBtn.textContent = "×";
+        closeBtn.setAttribute("aria-label", "Close description");
+        closeBtn.style =
+          "position:absolute;top:8px;right:8px;background:#e35d5d;color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:18px;line-height:20px;cursor:pointer;z-index:20;";
+        closeBtn.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          desc.remove();
+          btn.setAttribute("aria-label", "Show description");
+        });
+        desc.appendChild(closeBtn);
+        // Add the description text
+        const descTextDiv = document.createElement("div");
+        descTextDiv.textContent = descText;
+        descTextDiv.style = "padding-top:18px;";
+        desc.appendChild(descTextDiv);
+        // Prevent clicks inside the description from bubbling up to the card
+        desc.addEventListener("click", (ev) => ev.stopPropagation());
         card.appendChild(desc);
         btn.setAttribute("aria-label", "Hide description");
       }
@@ -330,6 +370,8 @@ function updateSelectedProducts() {
     `
     )
     .join("");
+  // After updating selected products, also update the all products box
+  displayProducts(allProducts);
 
   // Add click event listeners to deselect and show description
   const selectedCards = selectedProductsList.querySelectorAll(
@@ -387,16 +429,17 @@ function updateSelectedProducts() {
 
   // Add a clear all button
   if (!document.getElementById("clear-selected-btn")) {
-    const clearBtn = document.createElement("button");
-    clearBtn.id = "clear-selected-btn";
-    clearBtn.textContent = "Clear All";
-    clearBtn.style =
-      "margin: 10px 0; background: #e35d5d; color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 1em; cursor: pointer;";
-    clearBtn.onclick = clearSelectedProducts;
-    selectedProductsList.parentElement.insertBefore(
-      clearBtn,
-      selectedProductsList
-    );
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "×";
+    closeBtn.setAttribute("aria-label", "Close description");
+    closeBtn.style =
+      "position:absolute;top:6px;left:6px;background:#e35d5d;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:13px;line-height:16px;cursor:pointer;z-index:20;padding:0;display:flex;align-items:center;justify-content:center;";
+    closeBtn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      desc.remove();
+      btn.setAttribute("aria-label", "Show description");
+    });
+    desc.appendChild(closeBtn);
   }
 }
 
@@ -415,7 +458,6 @@ generateRoutineBtn.addEventListener("click", function () {
   });
   // Show the user's message in a new chat box
   const userBox = document.createElement("div");
-  userBox.className = "user-message chat-bigger";
   userBox.textContent = userInput;
   chatWindow.appendChild(userBox);
   // Clear the input field after sending
